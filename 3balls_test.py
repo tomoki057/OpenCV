@@ -13,7 +13,7 @@ def main():
     # 各色の範囲を定義（HSV色空間）
     color_ranges = {
         'blue': ([100, 150, 0], [140, 255, 255]),
-        'yellow': ([20, 100, 100], [30, 255, 255])
+        'yellow': ([20, 90, 105], [30, 255, 255])
     }
 
     while True:
@@ -26,9 +26,9 @@ def main():
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # 赤色のマスクを作成（赤色は二つの範囲に分ける）
-        red_lower1 = np.array([0, 120, 70])
+        red_lower1 = np.array([0, 130, 50])
         red_upper1 = np.array([10, 255, 255])
-        red_lower2 = np.array([170, 120, 70])
+        red_lower2 = np.array([170, 130, 50])
         red_upper2 = np.array([180, 255, 255])
 
         mask1 = cv2.inRange(hsv, red_lower1, red_upper1)
@@ -41,6 +41,10 @@ def main():
             lower_bound = np.array(lower)
             upper_bound = np.array(upper)
             masks[color] = cv2.inRange(hsv, lower_bound, upper_bound)
+        
+        cv2.imshow('Red Mask', red_mask)
+        cv2.imshow('Blue Mask', masks['blue'])
+        cv2.imshow('Yellow Mask', masks['yellow'])
 
         for color, mask in masks.items():
             # 輪郭を検出
@@ -56,9 +60,9 @@ def main():
                     radius = int(radius)
 
                     # 円を描画
-                    if radius > 10:
+                    if radius > 30:
                         circularity = 4 * np.pi * (area / (cv2.arcLength(contour, True) ** 2))
-                        if 0.7 < circularity < 1.3:  # 円形に近いかどうか
+                        if 0.5 < circularity < 1.5:  # 円形に近いかどうか
                             if color == 'blue':
                                 cv2.circle(frame, center, radius, (255, 0, 0), 2)
                             elif color == 'red':
