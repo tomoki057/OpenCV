@@ -1,7 +1,6 @@
 import time
 import board
 import busio
-import RPi.GPIO as GPIO
 from adafruit_pca9685 import PCA9685
 
 # I2Cバスの初期化
@@ -13,28 +12,29 @@ pca.frequency = 50  # サーボモーター用に50Hzに設定
 
 # PWM信号を計算する関数（角度をPWMのデューティサイクルに変換）
 def set_servo_angle(channel, angle):
-    duty = angle / 18 + 2  # 角度に対応するデューティサイクルを計算
-    GPIO.output(18, True)
-    pca.ChangeDutyCycle(duty)
-    time.sleep(1)
-    GPIO.output(18, False)
-    pca.ChangeDutyCycle(0)
+    # 角度をPWM信号に変換
+    pulse_length = 1000000  # 1,000,000 us per second
+    pulse_length //= 50     # 50 Hz
+    pulse_length //= 4096   # 12-bit resolution
+    pulse = angle * (2000 / 180) + 1000
+    pulse //= pulse_length
+    pca.channels[channel].duty_cycle = int(pulse)
 
 # サーボモーターのチャンネル設定（例えば、チャンネル0を使用）
-servo_channel = 1
+servo_channel = 0
 
 try:
     while True:
         # サーボを0度に動かす
-        set_angle(0)
+        set_servo_angle(servo_channel, 0)
         time.sleep(2)
 
         # サーボを90度に動かす
-        set_angle(90)
+        set_servo_angle(servo_channel, 90)
         time.sleep(2)
 
         # サーボを180度に動かす
-        set_angle(180)
+        set_servo_angle(servo_channel, 180)
         time.sleep(2)
 
 except KeyboardInterrupt:
@@ -42,4 +42,3 @@ except KeyboardInterrupt:
     pca.deinit()
     print("Program terminated and PCA9685 shutdown.")
 
-    GPIO.cleanup()
