@@ -1,21 +1,27 @@
-import RPi.GPIO as GPIO
 import time
+import board
+import busio
+import RPi.GPIO as GPIO
+from adafruit_pca9685 import PCA9685
 
-# GPIOの設定
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(18, GPIO.OUT)
+# I2Cバスの初期化
+i2c = busio.I2C(board.SCL, board.SDA)
 
-# PWMの設定
-pwm = GPIO.PWM(18, 50)  # 50HzのPWM信号を生成
-pwm.start(0)
+# PCA9685の初期化
+pca = PCA9685(i2c)
+pca.frequency = 50  # サーボモーター用に50Hzに設定
 
-def set_angle(angle):
+# PWM信号を計算する関数（角度をPWMのデューティサイクルに変換）
+def set_servo_angle(channel, angle):
     duty = angle / 18 + 2  # 角度に対応するデューティサイクルを計算
     GPIO.output(18, True)
-    pwm.ChangeDutyCycle(duty)
+    pca.ChangeDutyCycle(duty)
     time.sleep(1)
     GPIO.output(18, False)
-    pwm.ChangeDutyCycle(0)
+    pca.ChangeDutyCycle(0)
+
+# サーボモーターのチャンネル設定（例えば、チャンネル0を使用）
+servo_channel = 1
 
 try:
     while True:
@@ -32,8 +38,8 @@ try:
         time.sleep(2)
 
 except KeyboardInterrupt:
-    pass
+    # 終了時にPCA9685をシャットダウン
+    pca.deinit()
+    print("Program terminated and PCA9685 shutdown.")
 
-pwm.stop()
-GPIO.cleanup()
-
+    GPIO.cleanup()
