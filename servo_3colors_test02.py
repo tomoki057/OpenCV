@@ -98,6 +98,12 @@ def main():
         # ボールを半径でソート（大きい順）
         detected_balls.sort(key=lambda x: x[1], reverse=True)
 
+        #max color detected balls
+        if detected_balls:
+            max_color = detected_balls[0][0]
+            move_servo_based_on_color(max_color)
+            time.sleep(1)
+
         # ソートされたボールに順位を表示
         for i, (color, radius, center) in enumerate(detected_balls):
             if color == 'blue':
@@ -108,7 +114,7 @@ def main():
                 cv2.circle(frame, center, radius, (0, 255, 255), 2)
            # elif color == 'shape':  # 形状ベースの場合は緑色
            #     cv2.circle(frame, center, radius, (0, 255, 0), 2)
-           # cv2.putText(frame, f'{i+1}', (center[0] - 10, center[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, f'{i+1}', (center[0] - 10, center[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
         # ソートされたボールに順位を表示
         for i, (color, radius, center) in enumerate(detected_balls):
