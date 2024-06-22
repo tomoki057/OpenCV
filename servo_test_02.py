@@ -11,7 +11,7 @@ pca = PCA9685(i2c)
 pca.frequency = 50  # サーボモーター用に50Hzに設定
 
 def set_servo_angle(channel, angle):
-    pulse_min = 550  # 0度のときのパルス幅（0.5ms）
+    pulse_min = 550  # 0度のときのパルス幅（0.55ms）
     pulse_max = 2500  # 180度のときのパルス幅（2.5ms）
     pulse_range = pulse_max - pulse_min
     pulse = pulse_min + (pulse_range * angle / 180)
@@ -30,33 +30,33 @@ servo_channel_Red = 4
 try:
     while True:
         # 0 -> 60 slow rotate (blue tank)
-        for angle in range(0, 60, 2) #2 angle ++
+        for angle in range(0, 61, 2):  # 2度ずつ増加
             set_servo_angle(servo_channel_Blue, angle)
             time.sleep(0.1)
 
         # 60 -> 0 slow rotate (blue tank)
-        for angle in range(60, 0, 2) #2 angle ++
+        for angle in range(60, -1, -2):  # 2度ずつ減少
             set_servo_angle(servo_channel_Blue, angle)
             time.sleep(0.1)
 
         # 0 -> 60 slow rotate (yellow tank)
-        for angle in range(0, 60, 2) #2 angle ++
+        for angle in range(0, 61, 2):  # 2度ずつ増加
             set_servo_angle(servo_channel_Yellow, angle)
             time.sleep(0.1)
 
-        # 60 -> 0 slow rotate (Yellow tank)
-        for angle in range(60, 0, 2) #2 angle ++
+        # 60 -> 0 slow rotate (yellow tank)
+        for angle in range(60, -1, -2):  # 2度ずつ減少
             set_servo_angle(servo_channel_Yellow, angle)
             time.sleep(0.1)
 
         # 0 -> 60 slow rotate (red tank)
-        for angle in range(0, 60, 2) #2 angle ++
-            set_servo_angle(servo_channel_Yellow, angle)
+        for angle in range(0, 61, 2):  # 2度ずつ増加
+            set_servo_angle(servo_channel_Red, angle)
             time.sleep(0.1)
 
         # 60 -> 0 slow rotate (red tank)
-        for angle in range(60, 0, 2) #2 angle ++
-            set_servo_angle(servo_channel_Yellow, angle)
+        for angle in range(60, -1, -2):  # 2度ずつ減少
+            set_servo_angle(servo_channel_Red, angle)
             time.sleep(0.1)
 
 except KeyboardInterrupt:
