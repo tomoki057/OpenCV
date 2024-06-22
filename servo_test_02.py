@@ -30,34 +30,34 @@ servo_channel_Red = 4
 try:
     while True:
         # 0 -> 60 slow rotate (blue tank)
-        for angle in range(0, 61, 2):  # 2度ずつ増加
+        for angle in range(0, 60, 1):  # 1度ずつ増加
             set_servo_angle(servo_channel_Blue, angle)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
         # 60 -> 0 slow rotate (blue tank)
-        for angle in range(60, -1, -2):  # 2度ずつ減少
+        for angle in range(60, 0, -1):  # 1度ずつ減少
             set_servo_angle(servo_channel_Blue, angle)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
         # 0 -> 60 slow rotate (yellow tank)
-        for angle in range(0, 61, 2):  # 2度ずつ増加
+        for angle in range(125, 90, -1):  # 1度ずつ増加
             set_servo_angle(servo_channel_Yellow, angle)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
         # 60 -> 0 slow rotate (yellow tank)
-        for angle in range(60, -1, -2):  # 2度ずつ減少
+        for angle in range(90, 125, 1):  # 1度ずつ減少
             set_servo_angle(servo_channel_Yellow, angle)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
         # 0 -> 60 slow rotate (red tank)
-        for angle in range(0, 61, 2):  # 2度ずつ増加
+        for angle in range(180, 120, -1):  # 1度ずつ増加
             set_servo_angle(servo_channel_Red, angle)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
         # 60 -> 0 slow rotate (red tank)
-        for angle in range(60, -1, -2):  # 2度ずつ減少
+        for angle in range(120, 180, 1):  # 1度ずつ減少
             set_servo_angle(servo_channel_Red, angle)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
 except KeyboardInterrupt:
     # 終了時にPCA9685をシャットダウン
