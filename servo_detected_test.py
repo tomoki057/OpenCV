@@ -18,10 +18,19 @@ def move_servo(channel, pulse):
 
 # サーボモータのチャンネルとパルス幅のマッピング
 # ここで、各色に対応するサーボモータのチャンネルとパルス幅を指定します。
+
+PCAchannel = 2
+
 servo_mapping = {
-    'blue': (0, 2000),   # 例: 青いボール用のサーボモータ
-    'red': (0, 4000),    # 例: 赤いボール用のサーボモータ
-    'yellow': (0, 6000)  # 例: 黄色いボール用のサーボモータ
+    'blue': (PCAchannel, 2000),   # 例: 青いボール用のサーボモータ
+    'red': (PCAchannel, 4000),    # 例: 赤いボール用のサーボモータ
+    'yellow': (PCAchannel, 6000)  # 例: 黄色いボール用のサーボモータ
+}
+
+# 0番と1番のサーボモータのパルス幅
+servo_pulses = {
+    0: 3000,  # 0番サーボモータのパルス幅
+    1: 4500   # 1番サーボモータのパルス幅
 }
 
 def main():
@@ -101,6 +110,10 @@ def main():
                 previous_max_color = max_color
                 time.sleep(1)  # サーボが安定するまで待機
 
+                # 0番と1番のサーボモータを動かす
+                move_servo(0, servo_pulses[0])
+                move_servo(1, servo_pulses[1])
+
         # ソートされたボールに順位を表示
         for i, (color, radius, center) in enumerate(detected_balls):
             if color == 'blue':
@@ -109,7 +122,7 @@ def main():
                 cv2.circle(frame, center, radius, (0, 0, 255), 2)
             elif color == 'yellow':
                 cv2.circle(frame, center, radius, (0, 255, 255), 2)
-            cv2.putText(frame, f'{i+1}', (center[0] - 10, center[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+#            cv2.putText(frame, f'{i+1}', (center[0] - 10, center[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
         # 結果を表示
         cv2.imshow('Frame', frame)
