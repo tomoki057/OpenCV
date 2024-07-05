@@ -1,10 +1,36 @@
 import cv2
 import numpy as np
 import time
+import RPi.GPIO as GPIO
 import board
 import busio
 from adafruit_pca9685 import PCA9685
-import RPi.GPIO as GPIO
+
+# GPIOピンの設定
+A1_PIN = 14  # モーター1の入力Aピン
+B1_PIN = 15  # モーター1の入力Bピン
+A2_PIN = 23  # モーター2の入力Aピン
+B2_PIN = 24  # モーター2の入力Bピン
+
+# GPIOの設定
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(A1_PIN, GPIO.OUT)
+GPIO.setup(B1_PIN, GPIO.OUT)
+GPIO.setup(A2_PIN, GPIO.OUT)
+GPIO.setup(B2_PIN, GPIO.OUT)
+
+# PWMの設定
+FREQUENCY = 1000  # PWMの周波数（Hz）
+pwm_a1 = GPIO.PWM(A1_PIN, FREQUENCY)
+pwm_b1 = GPIO.PWM(B1_PIN, FREQUENCY)
+pwm_a2 = GPIO.PWM(A2_PIN, FREQUENCY)
+pwm_b2 = GPIO.PWM(B2_PIN, FREQUENCY)
+
+# PWMの開始（デューティサイクル0%）
+pwm_a1.start(0)
+pwm_b1.start(0)
+pwm_a2.start(0)
+pwm_b2.start(0)
 
 # I2Cバスの初期化
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -18,8 +44,6 @@ def move_servo(channel, pulse):
     pca.channels[channel].duty_cycle = pulse
 
 # サーボモータのチャンネルとパルス幅のマッピング
-# ここで、各色に対応するサーボモータのチャンネルとパルス幅を指定します。
-
 PCAchannel = 2
 
 servo_mapping = {
@@ -28,57 +52,14 @@ servo_mapping = {
     'yellow': (PCAchannel, 6000)  # 例: 黄色いボール用のサーボモータ
 }
 
-# GPIOピンの設定
-A_PIN = 14  # 入力AのGPIOピン番号
-B_PIN = 15  # 入力BのGPIOピン番号
+# 0番と1番のサーボモータのパルス幅（逆方向）
+servo_pulses = {
+    0: 10000,  # 0番サーボモータの逆方向パルス幅
+    1: 10000   # 1番サーボモータの逆方向パルス幅
+}
 
-# GPIOの設定
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(A_PIN, GPIO.OUT)
-GPIO.setup(B_PIN, GPIO.OUT)
-
-# PWMの設定
-FREQUENCY = 1000  # PWMの周波数（Hz）
-pwm_a = GPIO.PWM(A_PIN, FREQUENCY)
-pwm_b = GPIO.PWM(B_PIN, FREQUENCY)
-
-# PWMの開始
-pwm_a.start(0)
-pwm_b.start(0)
-
-def motor_control(a, b):
-    """モータードライバの入力を制御"""
-    GPIO.output(A_PIN, a)
-    GPIO.output(B_PIN, b)
-
-def stop():
-    motor_control(GPIO.HIGH, GPIO.HIGH)
-
-def forward(speed):
-    pwm_a.ChangeDutyCycle(0)
-    pwm_b.ChangeDutyCycle(speed * 100)
-
-def reverse(speed):
-    pwm_a.ChangeDutyCycle(speed * 100)
-    pwm_b.ChangeDutyCycle(0)
-
-def short_brake():
-    motor_control(GPIO.LOW, GPIO.LOW)
-
-def sm_speed_control(speed):
-    """SM方式の速度制御"""
-    if speed < 0:
-        speed = 0
-    elif speed > 1:
-        speed = 1
-
-    forward_duration = speed
-    stop_duration = 1.0 - speed
-
-    forward(speed)
-    time.sleep(forward_duration)
-    short_brake()
-    time.sleep(stop_duration)
+# サーボモータを停止するパルス幅（中央位置、角度ゼロ）
+servo_stop_pulse = 0
 
 def main():
     # USBカメラの映像をキャプチャ
@@ -149,26 +130,37 @@ def main():
         # ボールを半径でソート（大きい順）
         detected_balls.sort(key=lambda x: x[1], reverse=True)
 
-        # 最大面積の色を取得
+        # ボールが検出されているか確認
         if detected_balls:
-            max_color = detected_balls[0][0]
-            ball_center = detected_balls[0][2]
-            frame_center = (frame.shape[1] // 2, frame.shape[0] // 2)
-            error_x = ball_center[0] - frame_center[0]
+            move_servo(0, servo_pulses[0])
+            move_servo(1, servo_pulses[1])
 
-            # エラーハンドリング範囲に基づいてモーターを制御
-            if abs(error_x) > 20:  # 20ピクセル以上のずれがある場合
-                if error_x > 0:
-                    forward(min(abs(error_x / frame_center[0]), 1.0))
-                else:
-                    reverse(min(abs(error_x / frame_center[0]), 1.0))
-            else:
-                stop()
-            
+            max_color, _, (x, y) = detected_balls[0]
             if max_color != previous_max_color:
                 move_servo_based_on_color(max_color)
                 previous_max_color = max_color
                 time.sleep(1)  # サーボが安定するまで待機
+
+            # カメラの中央にボールを保持するためのモーター制御
+            frame_center_x = frame.shape[1] // 2
+            error_x = x - frame_center_x
+
+            # 閾値を設定してモーターを制御
+            if abs(error_x) > 20:
+                if error_x > 0:
+                    # ボールが右側にある場合、左に動かす
+                    move_motor_left(0.5)  # 速度0.5で左に動かす
+                else:
+                    # ボールが左側にある場合、右に動かす
+                    move_motor_right(0.5)  # 速度0.5で右に動かす
+            else:
+                # ボールが中央付近にある場合、モーターを停止
+                stop_motors()
+        else:
+            # ボールが検出されていない場合、モーターを停止させる
+            move_servo(0, servo_stop_pulse)
+            move_servo(1, servo_stop_pulse)
+            stop_motors()
 
         # ソートされたボールに順位を表示
         for i, (color, radius, center) in enumerate(detected_balls):
@@ -190,9 +182,51 @@ def main():
     # リソースを解放
     cap.release()
     cv2.destroyAllWindows()
-    pwm_a.stop()
-    pwm_b.stop()
-    GPIO.cleanup()
+
+def move_motor_left(speed):
+    """モーターを左に動かす"""
+    forward_motor1(speed)
+    reverse_motor2(speed)
+
+def move_motor_right(speed):
+    """モーターを右に動かす"""
+    reverse_motor1(speed)
+    forward_motor2(speed)
+
+def stop_motors():
+    """モーターを停止"""
+    stop_motor1()
+    stop_motor2()
+
+def forward_motor1(speed):
+    """モーター1を前進"""
+    pwm_a1.ChangeDutyCycle(0)
+    pwm_b1.ChangeDutyCycle(speed * 100)
+
+def reverse_motor1(speed):
+    """モーター1を後退"""
+    pwm_a1.ChangeDutyCycle(speed * 100)
+    pwm_b1.ChangeDutyCycle(0)
+
+def stop_motor1():
+    """モーター1を停止"""
+    pwm_a1.ChangeDutyCycle(0)
+    pwm_b1.ChangeDutyCycle(0)
+
+def forward_motor2(speed):
+    """モーター2を前進"""
+    pwm_a2.ChangeDutyCycle(0)
+    pwm_b2.ChangeDutyCycle(speed * 100)
+
+def reverse_motor2(speed):
+    """モーター2を後退"""
+    pwm_a2.ChangeDutyCycle(speed * 100)
+    pwm_b2.ChangeDutyCycle(0)
+
+def stop_motor2():
+    """モーター2を停止"""
+    pwm_a2.ChangeDutyCycle(0)
+    pwm_b2.ChangeDutyCycle(0)
 
 # ボールの色に応じてサーボモータを動かす関数
 def move_servo_based_on_color(color):
@@ -201,5 +235,14 @@ def move_servo_based_on_color(color):
         move_servo(channel, pulse)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        pwm_a1.stop()
+        pwm_b1.stop()
+        pwm_a2.stop()
+        pwm_b2.stop()
+        GPIO.cleanup()
 
